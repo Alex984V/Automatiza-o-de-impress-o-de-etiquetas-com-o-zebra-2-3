@@ -1,0 +1,517 @@
+# =========================
+# 🔵 PARTE 1 - INTERFACE
+# =========================
+
+# Biblioteca da interface gráfica
+import tkinter as tk
+
+# Biblioteca para popups e mensagens
+from tkinter import messagebox
+
+# Permite rodar tarefas paralelas
+import threading
+
+# Biblioteca de automação de mouse e teclado
+import pyautogui as Auto
+
+# Biblioteca de controle de tempo
+import time
+
+# Biblioteca para detectar teclas globais
+import keyboard
+
+
+# =========================
+# 📍 VARIÁVEIS DE CONTROLE
+# =========================
+
+# Controla encerramento da automação
+parar = False
+
+# Controla pausa da automação
+pausado = False
+
+# Guarda posição capturada do campo serial
+pos_campo_serial = None
+
+
+# =========================
+# 🎹 HOTKEY F8
+# =========================
+
+def escutar_teclas():
+
+    # Define F8 como tecla de pausa
+    keyboard.add_hotkey("f8", pausar)
+
+
+# =========================
+# ⏸️ PAUSAR AUTOMAÇÃO
+# =========================
+
+def pausar():
+    global pausado
+
+    # Ativa estado pausado
+    pausado = True
+
+
+# =========================
+# 🔍 VERIFICA PAUSA
+# =========================
+
+def verificar_pause():
+    global pausado, parar
+
+    # Se automação já foi encerrada
+    if parar:
+        return True
+
+    # Se usuário apertou F8
+    if pausado:
+
+        # Popup perguntando se deseja continuar
+        resposta = messagebox.askyesno(
+            "Pausado",
+            "Automação pausada.\n\nSim = continuar\nNão = encerrar"
+        )
+
+        # Continua automação
+        if resposta:
+            pausado = False
+
+        # Encerra automação
+        else:
+            parar = True
+            pausado = False
+            return True
+
+    return False
+
+
+# =========================
+# 📸 CAPTURA POSIÇÃO SERIAL
+# =========================
+
+def capturar_posicao_serial():
+    global pos_campo_serial
+
+    # Informa usuário para posicionar mouse
+    messagebox.showinfo(
+        "Captura",
+        "Posicione o mouse no CAMPO DO SERIAL"
+    )
+
+    # Aguarda 2 segundos
+    time.sleep(2)
+
+    # Salva posição atual do mouse
+    pos_campo_serial = Auto.position()
+
+    # Exibe posição capturada
+    messagebox.showinfo(
+        "Sucesso",
+        f"Posição capturada: {pos_campo_serial}"
+    )
+
+
+# =========================
+# 🚀 INICIAR PROCESSO
+# =========================
+
+def iniciar_processo():
+
+    try:
+        global parar, pausado, pos_campo_serial
+
+        # Verifica se posição foi capturada
+        if pos_campo_serial is None:
+
+            messagebox.showwarning(
+                "Aviso",
+                "Capture a posição do serial primeiro!"
+            )
+            return
+
+        # Pega serial inicial digitado
+        valor_inicial = int(entry_inicio.get())
+
+        # Pega quantidade digitada
+        quantidade = int(entry_quantos.get())
+
+        # Pega tipo de barra selecionado
+        tipo_barra = opcao_barra.get()
+
+        # Valida quantidade
+        if quantidade <= 0:
+
+            messagebox.showwarning(
+                "Aviso",
+                "Quantidade deve ser maior que 0!"
+            )
+            return
+
+        # Reseta variáveis de controle
+        parar = False
+        pausado = False
+
+        # Minimiza janela
+        janela.iconify()
+
+        # Inicia fluxo principal em thread separada
+        threading.Thread(
+            target=fluxo_principal,
+            args=(valor_inicial, quantidade, tipo_barra)
+        ).start()
+
+        # Inicia listener do F8
+        threading.Thread(
+            target=escutar_teclas,
+            daemon=True
+        ).start()
+
+    # Caso usuário digite valor inválido
+    except ValueError:
+
+        messagebox.showerror(
+            "Erro",
+            "Digite apenas números válidos!"
+        )
+
+
+# =========================
+# 🖥️ CRIAÇÃO DA JANELA
+# =========================
+
+# Cria janela principal
+janela = tk.Tk()
+
+# Define título
+janela.title("Impressão de Seriais")
+
+# Define tamanho
+janela.geometry("320x360")
+
+
+# =========================
+# 📥 CAMPO SERIAL INICIAL
+# =========================
+
+tk.Label(
+    janela,
+    text="Serial inicial:"
+).pack(pady=5)
+
+# Campo de entrada
+entry_inicio = tk.Entry(janela)
+entry_inicio.pack()
+
+
+# =========================
+# 📥 CAMPO QUANTIDADE
+# =========================
+
+tk.Label(
+    janela,
+    text="Quantidade:"
+).pack(pady=5)
+
+# Campo quantidade
+entry_quantos = tk.Entry(janela)
+entry_quantos.pack()
+
+
+# =========================
+# 📋 MENU TIPO DE BARRA
+# =========================
+
+tk.Label(
+    janela,
+    text="Tipo de barra:"
+).pack(pady=5)
+
+# Variável do dropdown
+opcao_barra = tk.StringVar()
+
+# Valor padrão
+opcao_barra.set("normal")
+
+# Menu dropdown
+tk.OptionMenu(
+    janela,
+    opcao_barra,
+    "normal",
+    "lateral"
+).pack()
+
+
+# =========================
+# 🔘 BOTÕES
+# =========================
+
+# Botão captura posição
+tk.Button(
+    janela,
+    text="Capturar Campo Serial",
+    command=capturar_posicao_serial
+).pack(pady=5)
+
+# Botão iniciar automação
+tk.Button(
+    janela,
+    text="Iniciar",
+    command=iniciar_processo
+).pack(pady=10)
+
+
+# =========================
+# 📢 ÁREA DE INSTRUÇÕES
+# =========================
+
+# Frame visual das instruções
+frame_instrucao = tk.Frame(
+    janela,
+    bd=2,
+    relief="groove"
+)
+
+frame_instrucao.pack(
+    pady=10,
+    padx=10,
+    fill="x"
+)
+
+# Título da área
+tk.Label(
+    frame_instrucao,
+    text="Controles:",
+    font=("Arial", 10, "bold")
+).pack(pady=5)
+
+# Instrução F8
+tk.Label(
+    frame_instrucao,
+    text="F8 → Pausar automação",
+    fg="blue"
+).pack()
+
+# Instruções pausa
+tk.Label(
+    frame_instrucao,
+    text="Ao pausar:\nSim → Continuar\nNão → Encerrar",
+    fg="red"
+).pack(pady=5)
+
+
+# =========================
+# 🟢 TESTE DE POSIÇÕES
+# =========================
+
+def testar_posicoes(barra):
+
+    # Pequena pausa antes do teste
+    time.sleep(1)
+
+    # Define posição fixa dependendo do tipo
+    if barra == "lateral":
+        campo2 = (1141, 382)
+    else:
+        campo2 = (1068, 390)
+
+    # Lista de posições para testar
+    posicoes = [pos_campo_serial, campo2]
+
+    # Move mouse pelas posições
+    for p in posicoes:
+
+        # Verifica encerramento
+        if parar:
+            return
+
+        # Verifica pausa
+        if verificar_pause():
+            return
+
+        # Move mouse suavemente
+        Auto.moveTo(
+            p[0],
+            p[1],
+            duration=0.3
+        )
+
+        time.sleep(0.3)
+
+
+# =========================
+# 🤖 AUTOMAÇÃO PRINCIPAL
+# =========================
+
+def rodar_automacao(inicio, quantos, barra):
+    global parar
+
+    # Pequena pausa antes de iniciar
+    time.sleep(1)
+
+    # Loop da quantidade
+    for _ in range(quantos):
+
+        # Verifica encerramento
+        if parar:
+            janela.deiconify()
+            return
+
+        # Verifica pausa
+        if verificar_pause():
+            janela.deiconify()
+            return
+
+        # Incrementa serial
+        inicio += 1
+
+        # Define posição fixa
+        if barra == "lateral":
+            campo2 = (1141, 382)
+        else:
+            campo2 = (1068, 390)
+
+        # =========================
+        # 🔹 CAMPO SERIAL
+        # =========================
+
+        if verificar_pause():
+            return
+
+        # Dá duplo clique no campo serial
+        Auto.doubleClick(pos_campo_serial)
+
+        if verificar_pause():
+            return
+
+        time.sleep(0.3)
+
+        # =========================
+        # 🔹 CAMPO EDIÇÃO
+        # =========================
+
+        if verificar_pause():
+            return
+
+        # Seleciona campo de edição
+        Auto.doubleClick(campo2)
+
+        if verificar_pause():
+            return
+
+        # Seleciona texto atual
+        Auto.hotkey("ctrl", "a")
+
+        if verificar_pause():
+            return
+
+        # Apaga texto atual
+        Auto.press("backspace")
+
+        if verificar_pause():
+            return
+
+        # Digita novo serial
+        Auto.write(str(inicio))
+
+        time.sleep(0.3)
+
+        # =========================
+        # 🖨️ IMPRIMIR
+        # =========================
+
+        if verificar_pause():
+            return
+
+        # Abre impressão
+        Auto.hotkey("ctrl", "p")
+
+        if verificar_pause():
+            return
+
+        time.sleep(0.3)
+
+        # Aqui poderia confirmar impressão
+        # Auto.press("enter")
+
+        time.sleep(0.3)
+
+        if verificar_pause():
+            return
+
+        time.sleep(0.3)
+
+        if verificar_pause():
+            return
+
+        # Fecha popup
+        Auto.press("esc")
+
+    # Finalização
+    messagebox.showinfo(
+        "Finalizado",
+        "Automação concluída!"
+    )
+
+    # Restaura janela
+    janela.deiconify()
+
+
+# =========================
+# 🔄 FLUXO PRINCIPAL
+# =========================
+
+def fluxo_principal(valor_inicial, quantidade, barra):
+    global parar
+
+    while True:
+
+        # Verifica encerramento
+        if parar:
+            janela.deiconify()
+            return
+
+        # Testa posições
+        testar_posicoes(barra)
+
+        # Verifica encerramento
+        if parar:
+            janela.deiconify()
+            return
+
+        # Pergunta confirmação
+        resposta = messagebox.askyesnocancel(
+            "Confirmação",
+            "As posições estão corretas?\n\nSim = continuar\nNão = testar novamente\nCancelar = parar"
+        )
+
+        # Continua automação
+        if resposta is True:
+
+            rodar_automacao(
+                valor_inicial,
+                quantidade,
+                barra
+            )
+
+            break
+
+        # Refaz teste
+        elif resposta is False:
+            continue
+
+        # Cancela automação
+        else:
+            janela.deiconify()
+            return
+
+
+# =========================
+# 🚀 START DO PROGRAMA
+# =========================
+
+# Mantém janela aberta
+janela.mainloop()
