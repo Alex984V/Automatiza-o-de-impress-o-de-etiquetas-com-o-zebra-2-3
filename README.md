@@ -1,6 +1,9 @@
-Automação de Impressão de Seriais
+Automação de Impressão de Etiquetas com Zebra 2.3
 
-Sistema desenvolvido em Python para automatizar preenchimento e impressão de seriais utilizando automação de mouse e teclado.
+Sistema desenvolvido em Python para automatizar preenchimento e impressão de etiquetas utilizando automação de mouse e teclado.
+
+Repositório oficial:
+Automação de impressão de etiquetas com zebra 2.3
 
 📌 Funcionalidades
 Interface gráfica simples usando Tkinter
@@ -40,18 +43,18 @@ import keyboard
 
 Clone o repositório:
 
-git clone https://github.com/Alex984V/NOME-DO-REPOSITORIO.git
+git clone https://github.com/Alex984V/Automatiza-o-de-impress-o-de-etiquetas-com-o-zebra-2-3.git
 
 Entre na pasta:
 
-cd NOME-DO-REPOSITORIO
+cd Automatiza-o-de-impress-o-de-etiquetas-com-o-zebra-2-3
 
 Instale as dependências:
 
 pip install pyautogui keyboard
 ▶️ Como Usar
 1️⃣ Execute o programa
-python nome_do_arquivo.py
+python automacao.py
 2️⃣ Capture a posição do serial
 
 Clique em:
@@ -93,7 +96,7 @@ Utilize resolução compatível com as posições configuradas
 O sistema depende das coordenadas capturadas
 Algumas funções podem exigir execução como administrador
 📁 Estrutura do Projeto
-📦 projeto
+📦 Automatiza-o-de-impress-o-de-etiquetas-com-o-zebra-2-3
  ┣ 📜 automacao.py
  ┣ 📜 README.md
 🚀 Objetivo
