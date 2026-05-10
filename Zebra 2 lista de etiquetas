@@ -1,0 +1,274 @@
+# =========================================
+# 📚 BIBLIOTECAS UTILIZADAS
+# =========================================
+
+# tkinter → Criação da interface gráfica (janelas, botões, textos, popups)
+import tkinter as tk
+
+# messagebox → Exibe caixas de diálogo e mensagens do sistema
+from tkinter import messagebox
+
+# threading → Permite executar processos paralelos (ex: escutar tecla F8 sem travar o programa)
+import threading
+
+# pyautogui → Responsável pela automação do mouse e teclado
+import pyautogui as Auto
+
+# time → Controle de tempo e pausas do sistema (sleep)
+import time
+
+# keyboard → Detecta teclas pressionadas no teclado em tempo real
+import keyboard
+
+# ===== CONFIG GLOBAL =====
+Auto.PAUSE = 0.3
+
+# ===== VARIÁVEIS =====
+modo_duas_etiquetas = True
+parar = False
+pausado = False
+
+pos_etq1 = None
+pos_etq2 = None
+
+acao_popup = None
+
+root = tk.Tk()
+root.withdraw()
+
+# =========================================
+# 📍 POPUP DE CONTROLE
+# =========================================
+def popup_controle():
+    global acao_popup
+
+    acao_popup = None
+
+    win = tk.Toplevel(root)
+    win.title("Controle da Automação")
+    win.geometry("300x150")
+    win.resizable(False, False)
+
+    def continuar():
+        global acao_popup
+        acao_popup = "continuar"
+        win.destroy()
+
+    def parar_codigo():
+        global acao_popup
+        acao_popup = "parar"
+        win.destroy()
+
+    tk.Label(win, text="Deseja continuar a automação?").pack(pady=10)
+
+    btn_continuar = tk.Button(win, text="Continuar", command=continuar, width=20, default="active")
+    btn_continuar.pack(pady=5)
+
+    tk.Button(win, text="Parar código", command=parar_codigo, width=20).pack(pady=5)
+
+    win.after(50, lambda: btn_continuar.focus_force())
+
+    btn_continuar.bind("<Return>", lambda e: continuar())
+    win.bind("<Escape>", lambda e: parar_codigo())
+
+    win.lift()
+    win.attributes("-topmost", True)
+    win.after(100, lambda: win.attributes("-topmost", False))
+
+    win.grab_set()
+    root.wait_window(win)
+
+# =========================================
+# 📍 CAPTURA DE POSIÇÃO
+# =========================================
+def capturar_posicao(etq):
+    global pos_etq1, pos_etq2
+
+    messagebox.showinfo("Captura", "Posicione o mouse e aguarde 2 segundos")
+    time.sleep(2)
+
+    pos = Auto.position()
+
+    if etq == 1:
+        pos_etq1 = pos
+    else:
+        pos_etq2 = pos
+
+    messagebox.showinfo("OK", f"Posição ETQ{etq} salva: {pos}")
+
+# =========================================
+# 🔵 MODO
+# =========================================
+def set_modo(tipo):
+    global modo_duas_etiquetas
+    modo_duas_etiquetas = tipo
+
+# =========================================
+# 🔴 PAUSE F8
+# =========================================
+def escutar_teclas():
+    while True:
+        keyboard.wait("f8")
+        pausar()
+
+def pausar():
+    global pausado
+    pausado = True
+
+def verificar_pause():
+    global pausado, parar
+
+    if parar:
+        return True
+
+    if pausado:
+        resposta = messagebox.askyesno("Pausado", "Continuar automação?")
+        if resposta:
+            pausado = False
+        else:
+            parar = True
+            return True
+
+    return False
+
+# =========================================
+# 📌 INTERFACE
+# =========================================
+def pegar_etiquetas():
+    lista = []
+
+    def iniciar():
+        nonlocal lista
+        texto = campo.get("1.0", tk.END).strip()
+        if texto:
+            lista = texto.split("\n")
+        janela.destroy()
+
+    janela = tk.Toplevel(root)
+    janela.title("Etiquetas")
+    janela.geometry("420x400")
+
+    tk.Label(janela, text="Digite as etiquetas (1 por linha)").pack(pady=5)
+
+    campo = tk.Text(janela, height=10)
+    campo.pack()
+
+    tk.Button(janela, text="Modo 1 etiqueta", command=lambda: set_modo(False)).pack()
+    tk.Button(janela, text="Modo 2 etiquetas", command=lambda: set_modo(True)).pack()
+
+    tk.Button(janela, text="Capturar posição ETQ 1", command=lambda: capturar_posicao(1)).pack()
+    tk.Button(janela, text="Capturar posição ETQ 2", command=lambda: capturar_posicao(2)).pack()
+
+    tk.Button(janela, text="Iniciar", command=iniciar).pack(pady=10)
+
+    janela.grab_set()
+    root.wait_window(janela)
+
+    return lista
+
+# =========================================
+# 🟢 AUTOMAÇÃO FINAL
+# =========================================
+def iniciar_automacao(lista):
+    global parar
+    parar = False
+
+    if pos_etq1 is None:
+        messagebox.showerror("Erro", "Capture a posição da ETQ 1")
+        return
+
+    time.sleep(3)
+
+    i = 0
+
+    while i < len(lista):
+
+        if verificar_pause():
+            return
+
+        # =========================
+        # 🔹 MODO 1 ETIQUETA
+        # =========================
+        if not modo_duas_etiquetas:
+            valor = lista[i]
+
+            Auto.doubleClick(pos_etq1)
+            Auto.hotkey("ctrl", "a")
+            Auto.press("backspace")
+            Auto.write(str(valor))
+
+            Auto.click(886, 548)
+
+            # 🔥 IMPRIME
+            Auto.hotkey("ctrl", "p")
+
+            # 🔥 POPUP AGORA AQUI
+            popup_controle()
+            if acao_popup == "parar":
+                return
+
+            time.sleep(1)
+            Auto.press("esc")
+            Auto.press("esc")
+
+            # 🔥 SEGUNDO POPUP
+            popup_controle()
+            if acao_popup == "parar":
+                return
+
+            i += 1
+
+        # =========================
+        # 🔹 MODO 2 ETIQUETAS
+        # =========================
+        else:
+            valor1 = lista[i]
+            valor2 = lista[i + 1] if i + 1 < len(lista) else ""
+
+            Auto.doubleClick(pos_etq1)
+            Auto.hotkey("ctrl", "a")
+            Auto.press("backspace")
+            Auto.write(str(valor1))
+            Auto.click(886, 548)
+
+            if valor2:
+                if pos_etq2 is None:
+                    messagebox.showerror("Erro", "Capture a posição da ETQ 2")
+                    return
+
+                Auto.doubleClick(pos_etq2)
+                Auto.hotkey("ctrl", "a")
+                Auto.press("backspace")
+                Auto.write(str(valor2))
+                Auto.click(886, 548)
+
+            Auto.hotkey("ctrl", "p")
+
+            # 🔥 POPUP AGORA AQUI
+            popup_controle()
+            if acao_popup == "parar":
+                return
+
+            time.sleep(1)
+
+            Auto.doubleClick(483, 447)
+            Auto.press("esc")
+
+            popup_controle()
+            if acao_popup == "parar":
+                return
+
+            i += 2
+
+# =========================================
+# 🚀 LOOP PRINCIPAL
+# =========================================
+threading.Thread(target=escutar_teclas, daemon=True).start()
+
+while True:
+    lista = pegar_etiquetas()
+
+    if not lista:
+        break
+
+    iniciar_automacao(lista)
