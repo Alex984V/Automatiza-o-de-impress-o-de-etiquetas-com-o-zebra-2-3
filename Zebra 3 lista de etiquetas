@@ -1,0 +1,259 @@
+# =========================
+# 🔵 PARTE 1 - INTERFACE
+# =========================
+
+# Biblioteca principal da interface gráfica
+import tkinter as tk
+
+# Biblioteca para criar popups de aviso, erro e confirmação
+from tkinter import messagebox
+
+# Permite rodar processos paralelos sem travar a interface
+import threading
+
+# Biblioteca de automação de mouse e teclado
+import pyautogui as Auto
+
+# Biblioteca de controle de tempo
+import time
+
+# Biblioteca para detectar teclas globais (F8)
+import keyboard
+
+
+# =========================
+# 📍 VARIÁVEIS DE CONTROLE
+# =========================
+
+# Controla encerramento da automação
+parar = False
+
+# Controla estado de pausa
+pausado = False
+
+# Guarda a posição capturada do campo serial
+pos_campo_serial = None
+
+
+# =========================
+# 🎹 ESCUTA DA TECLA F8
+# =========================
+
+def escutar_teclas():
+
+    # Cria um atalho global
+    # Sempre que apertar F8 → executa pausar()
+    keyboard.add_hotkey("f8", pausar)
+
+
+# =========================
+# ⏸️ PAUSAR AUTOMAÇÃO
+# =========================
+
+def pausar():
+    global pausado
+
+    # Ativa estado de pausa
+    pausado = True
+
+
+# =========================
+# 🔍 VERIFICA SE ESTÁ PAUSADO
+# =========================
+
+def verificar_pause():
+    global pausado, parar
+
+    # Se automação já foi encerrada
+    if parar:
+        return True
+
+    # Se usuário apertou F8
+    if pausado:
+
+        # Mostra popup perguntando se deseja continuar
+        resposta = messagebox.askyesno(
+            "Pausado",
+            "Automação pausada.\n\nSim = continuar\nNão = encerrar"
+        )
+
+        # Continua automação
+        if resposta:
+            pausado = False
+
+        # Encerra automação
+        else:
+            parar = True
+            pausado = False
+            return True
+
+    return False
+
+
+# =========================
+# 📸 CAPTURA DA POSIÇÃO
+# =========================
+
+def capturar_posicao_serial():
+    global pos_campo_serial
+
+    # Informa usuário para posicionar mouse
+    messagebox.showinfo(
+        "Captura",
+        "Posicione o mouse no CAMPO DO SERIAL"
+    )
+
+    # Espera 2 segundos
+    time.sleep(2)
+
+    # Salva posição atual do mouse
+    pos_campo_serial = Auto.position()
+
+    # Mostra posição capturada
+    messagebox.showinfo(
+        "Sucesso",
+        f"Posição capturada: {pos_campo_serial}"
+    )
+
+
+# =========================
+# 🚀 INICIAR AUTOMAÇÃO
+# =========================
+
+def iniciar_processo():
+
+    try:
+        global parar, pausado, pos_campo_serial
+
+        # Verifica se posição foi capturada
+        if pos_campo_serial is None:
+            messagebox.showwarning(
+                "Aviso",
+                "Capture a posição do serial primeiro!"
+            )
+            return
+
+        # Pega valor digitado pelo usuário
+        valor_inicial = int(entry_inicio.get())
+
+        # Quantidade de impressões
+        quantidade = int(entry_quantos.get())
+
+        # Tipo de barra selecionada
+        tipo_barra = opcao_barra.get()
+
+        # Validação da quantidade
+        if quantidade <= 0:
+            messagebox.showwarning(
+                "Aviso",
+                "Quantidade deve ser maior que 0!"
+            )
+            return
+
+        # Reseta controles
+        parar = False
+        pausado = False
+
+        # Minimiza janela
+        janela.iconify()
+
+        # Inicia automação em thread separada
+        threading.Thread(
+            target=fluxo_principal,
+            args=(valor_inicial, quantidade, tipo_barra)
+        ).start()
+
+        # Inicia listener da tecla F8
+        threading.Thread(
+            target=escutar_teclas,
+            daemon=True
+        ).start()
+
+    # Caso usuário digite texto inválido
+    except ValueError:
+        messagebox.showerror(
+            "Erro",
+            "Digite apenas números válidos!"
+        )
+
+
+# =========================
+# 🖥️ CRIAÇÃO DA JANELA
+# =========================
+
+janela = tk.Tk()
+
+# Título da janela
+janela.title("Impressão de Seriais")
+
+# Tamanho da janela
+janela.geometry("320x360")
+
+
+# =========================
+# 📥 CAMPO SERIAL INICIAL
+# =========================
+
+tk.Label(
+    janela,
+    text="Serial inicial:"
+).pack(pady=5)
+
+entry_inicio = tk.Entry(janela)
+entry_inicio.pack()
+
+
+# =========================
+# 📥 CAMPO QUANTIDADE
+# =========================
+
+tk.Label(
+    janela,
+    text="Quantidade:"
+).pack(pady=5)
+
+entry_quantos = tk.Entry(janela)
+entry_quantos.pack()
+
+
+# =========================
+# 📋 MENU TIPO DE BARRA
+# =========================
+
+tk.Label(
+    janela,
+    text="Tipo de barra:"
+).pack(pady=5)
+
+# Variável do menu
+opcao_barra = tk.StringVar()
+
+# Valor padrão
+opcao_barra.set("normal")
+
+# Menu dropdown
+tk.OptionMenu(
+    janela,
+    opcao_barra,
+    "normal",
+    "lateral"
+).pack()
+
+
+# =========================
+# 🔘 BOTÕES
+# =========================
+
+# Botão captura posição
+tk.Button(
+    janela,
+    text="Capturar Campo Serial",
+    command=capturar_posicao_serial
+).pack(pady=5)
+
+# Botão iniciar automação
+tk.Button(
+    janela,
+    text="Iniciar",
+    command=iniciar_processo
+).pack(pady=10)
