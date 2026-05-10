@@ -257,3 +257,4 @@ tk.Button(
     text="Iniciar",
     command=iniciar_processo
 ).pack(pady=10)
+
